@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <string>
+#include <limits.h>
 
 using namespace std;
 class Matrix
@@ -21,6 +22,23 @@ public:
 	Matrix& operator=(Matrix&& AnotherMatrix);
 	void ShowMatrix() const;
 	void ConvertMatrixToString(string& Str) const;
+
+	friend const Matrix operator+ (const Matrix& Left, const Matrix& Right);
+	friend const Matrix operator- (const Matrix& Left, const Matrix& Right);
+	friend const Matrix operator* (const Matrix& Left, const Matrix& Right);
+	friend const Matrix operator/ (const Matrix& Left, const Matrix& Right);
+
+	const Matrix& operator+=(const Matrix& AnotherMatrix);
+	const Matrix& operator-=(const Matrix& AnotherMatrix);
+	const Matrix& operator*=(const Matrix& AnotherMatrix);
+	const Matrix& operator/=(const Matrix& AnotherMatrix);
+
+	friend const bool operator<(const Matrix& Left, const Matrix& Right);
+	friend const bool operator>(const Matrix& Left, const Matrix& Right);
+	friend const bool operator>=(const Matrix& Left, const Matrix& Right);
+	friend const bool operator<=(const Matrix& Left, const Matrix& Right);
+	friend const bool operator==(const Matrix& Left, const Matrix& Right);
+	friend const bool operator!=(const Matrix& Left, const Matrix& Right);
 };
 
 const Matrix& CreateMatrix(const double** AnotherMatrix, const int AnotherMatrixLines, const int AnotherMatrixColumns);
