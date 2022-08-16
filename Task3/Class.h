@@ -22,10 +22,17 @@ public:
 	Matrix& operator=(Matrix&& AnotherMatrix);
 	void ShowMatrix() const;
 	void ConvertMatrixToString(string& Str) const;
+	const double** GetMatrix() const;
+	void SetMatrixElem(const double Elem, const int LinesPosition, const int ColumnsPosition);
+	const int GetLines() const;
+	void SetLines(const int Number);
+	const int GetColumns() const;
+	void SetColumns(const int Number);
 
 	friend const Matrix operator+ (const Matrix& Left, const Matrix& Right);
 	friend const Matrix operator- (const Matrix& Left, const Matrix& Right);
-	friend const Matrix operator* (const Matrix& Left, const Matrix& Right);
+	friend const Matrix operator* (const Matrix& Left, const Matrix& Right); 
+	friend const Matrix operator* (const Matrix& Left, const int Number);
 	friend const Matrix operator/ (const Matrix& Left, const Matrix& Right);
 
 	const Matrix& operator+=(const Matrix& AnotherMatrix);
@@ -42,3 +49,5 @@ public:
 };
 
 const Matrix& CreateMatrix(const double** AnotherMatrix, const int AnotherMatrixLines, const int AnotherMatrixColumns);
+const double FindDeterminant(const Matrix& M);
+void MatrixTransposition(Matrix& M);

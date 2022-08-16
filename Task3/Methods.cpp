@@ -205,6 +205,36 @@ void Matrix::ConvertMatrixToString(string& Str) const
 	Str += ']';
 };
 
+const double** Matrix::GetMatrix() const
+{
+	return (const double**)MatrixElements;
+};
+
+void Matrix::SetMatrixElem(const double Elem, const int LinesPosition, const int ColumnsPosition)
+{
+	MatrixElements[LinesPosition][ColumnsPosition] = Elem;
+};
+
+const int Matrix::GetLines() const
+{
+	return Lines;
+};
+
+void Matrix::SetLines(const int Number)
+{
+	Lines = Number;
+};
+
+const int Matrix::GetColumns() const
+{
+	return Columns;
+};
+
+void Matrix::SetColumns(const int Number) 
+{
+	Columns = Number;
+};
+
 const Matrix& CreateMatrix(const double** AnotherMatrix, const int AnotherMatrixLines, const int AnotherMatrixColumns)
 {
 	Matrix* Mat = new Matrix(AnotherMatrix, AnotherMatrixLines, AnotherMatrixColumns);
@@ -272,10 +302,10 @@ const Matrix operator* (const Matrix& Left, const Matrix& Right)
 		cout << "Failed to multiply matrices" << endl;
 		return 0;
 	}
-	Matrix M(Left);
+	Matrix M(Left.GetMatrix(), Left.Lines, Right.Columns);
 	for (int i = 0; i < Left.Lines; ++i)
 	{
-		for (int j = 0; j < Left.Columns; ++j)
+		for (int j = 0; j < Right.Columns; ++j)
 		{
 			M.MatrixElements[i][j] = Left.MatrixElements[i][j] * Right.MatrixElements[i][j];
 		}
@@ -283,18 +313,80 @@ const Matrix operator* (const Matrix& Left, const Matrix& Right)
 	return M;
 };
 
-void MatrixTransposition(double** M, const int Lines, const int Columns) // Функція транспонування матриці, необхідна для ділення матриць
+const Matrix operator* (const Matrix& Left, const int Number)
 {
-	double Number;
-	for (int i = 0; i < Lines; ++i)
+	Matrix M(Left);
+	for (int i = 0; i < Left.Lines; ++i)
 	{
-		for (int j = 0; j < Columns; ++j)
+		for (int j = 0; j < Left.Columns; ++j)
 		{
-			Number = M[i][j];
-			M[i][j] = M[j][i];
-			M[j][i] = Number;
+			M.MatrixElements[i][j] = Left.MatrixElements[i][j] * Number;
 		}
 	}
+	return M;
+};
+void MatrixTransposition(Matrix& M) // Функція транспонування матриці, необхідна для ділення матриць
+{
+	double Number;
+	for (int i = 0; i < M.GetLines(); ++i)
+	{
+		for (int j = i; j < M.GetColumns(); ++j)
+		{
+			Number = M.GetMatrix()[i][j];
+			M.SetMatrixElem(M.GetMatrix()[j][i], i, j);
+			M.SetMatrixElem(Number, j, i);
+		}
+	}
+	int Temp = M.GetLines();
+	M.SetLines(M.GetColumns());
+	M.SetColumns(Temp);
+}
+
+void GetMatr(const double** mas, double** p, const int i, const int j, const int m) 
+{
+	int di, dj;
+	di = 0;
+	for (int ki = 0; ki < m - 1; ++ki) 
+	{
+		if (ki == i) di = 1;
+		dj = 0;
+		for (int kj = 0; kj < m - 1; ++kj) 
+		{
+			if (kj == j) dj = 1;
+			p[ki][kj] = mas[ki + di][kj + dj];
+		}
+	}
+}
+
+const double FindDeterminant(const Matrix& M) // функція знаходження визначника матриці, необхідна для ділення матриць
+{
+	double Determinant = 0;
+	int k, n;
+	double** p;
+	p = new double* [M.GetLines()];
+	for (int i = 0; i < M.GetLines(); ++i) p[i] = new double[M.GetLines()];
+	k = 1; //(-1) в степені i
+	n = M.GetLines() - 1;
+	if (M.GetLines() == 1) 
+	{
+		return M.GetMatrix()[0][0];
+	}
+	if (M.GetLines() == 2)
+	{
+		Determinant = M.GetMatrix()[0][0] * M.GetMatrix()[1][1] - (M.GetMatrix()[1][0] * M.GetMatrix()[0][1]);
+		return Determinant;
+	}
+	if (M.GetLines() > 2) 
+	{
+		for (int i = 0; i < M.GetLines(); ++i)
+		{
+			GetMatr(M.GetMatrix(), p, i, 0, M.GetLines());
+			Matrix TempMatrix((const double**)(p), n, n);
+			Determinant = Determinant + k * M.GetMatrix()[i][0] * FindDeterminant(TempMatrix);
+			k = -k;
+		}
+	}
+	return Determinant;
 }
 
 const Matrix operator/ (const Matrix& Left, const Matrix& Right) 
@@ -304,10 +396,30 @@ const Matrix operator/ (const Matrix& Left, const Matrix& Right)
 		cout << "Failed to divide matrices" << endl;
 		return 0;
 	}
-	Matrix M(Left);
-	for (int i = 0; i < Left.Lines; ++i)
+	if (Right.Lines != Right.Columns)
 	{
-		for (int j = 0; j < Left.Columns; ++j)
+		cout << "Failed to divide matrices" << endl;
+		return 0;
+	}
+	double Determinant = FindDeterminant(Right);
+	if (Determinant == 0)
+	{
+		cout << "Determinant was equal to 0. Failed to divide matrices" << endl;
+		return 0;
+	}
+	Matrix M(Left.GetMatrix(), Left.Lines, Right.Columns);
+	Matrix Copy(Right);
+	MatrixTransposition(Copy);
+	for (int i = 0; i < Right.Lines; ++i)
+	{
+		for (int j = 0; j < Right.Columns; ++j)
+		{
+			Copy.MatrixElements[i][j] /= Determinant;
+		}
+	}
+	for (int i = 0; i < M.Lines; ++i)
+	{
+		for (int j = 0; j < M.Columns; ++j)
 		{
 			if (Right.MatrixElements[i][j] == 0)
 			{
@@ -316,6 +428,7 @@ const Matrix operator/ (const Matrix& Left, const Matrix& Right)
 			}
 			else 
 			{
+				M.MatrixElements[i][j] *= Copy.MatrixElements[i][j];
 			};
 		}
 	}
@@ -329,26 +442,20 @@ const Matrix& Matrix::operator+=(const Matrix& AnotherMatrix)
 		cout << "Failed to add matrices" << endl;
 		return 0;
 	}
-	if ((AnotherMatrix.Lines == 1) && (AnotherMatrix.Columns == 1))
+	for (int i = 0; i < Lines; ++i)
 	{
-	}
-	else
-	{
-		for (int i = 0; i < Lines; ++i)
+		for (int j = 0; j < Columns; ++j)
 		{
-			for (int j = 0; j < Columns; ++j)
+			if (((AnotherMatrix.MatrixElements[i][j] > 0) && (MatrixElements[i][j] > (DBL_MAX - AnotherMatrix.MatrixElements[i][j]))) ||
+				((AnotherMatrix.MatrixElements[i][j] < 0) && (MatrixElements[i][j] < (DBL_MIN - AnotherMatrix.MatrixElements[i][j]))))
 			{
-				if (((AnotherMatrix.MatrixElements[i][j] > 0) && (MatrixElements[i][j] > (DBL_MAX - AnotherMatrix.MatrixElements[i][j]))) ||
-					((AnotherMatrix.MatrixElements[i][j] < 0) && (MatrixElements[i][j] < (DBL_MIN - AnotherMatrix.MatrixElements[i][j]))))
-				{
-					cout << "An overflow occurred while adding matrices" << endl;
-					MatrixElements[i][j] = 0;
-				}
-				else
-				{
-					MatrixElements[i][j] += AnotherMatrix.MatrixElements[i][j];
-				};
+				cout << "An overflow occurred while adding matrices" << endl;
+				MatrixElements[i][j] = 0;
 			}
+			else
+			{
+				MatrixElements[i][j] += AnotherMatrix.MatrixElements[i][j];
+			};
 		}
 	}
 	return *this;
@@ -387,13 +494,45 @@ const Matrix& Matrix::operator*=(const Matrix& AnotherMatrix)
 		cout << "Failed to multiply matrices" << endl;
 		return 0;
 	}
+
+	double** Temp = new double* [Lines];
+	for (int i = 0; i < Lines; ++i)
+	{
+		Temp[i] = new double[Columns];
+	}
 	for (int i = 0; i < Lines; ++i)
 	{
 		for (int j = 0; j < Columns; ++j)
 		{
-			MatrixElements[i][j] *= AnotherMatrix.MatrixElements[i][j];
+			Temp[i][j] = MatrixElements[i][j];
 		}
 	}
+	int TempLines = Lines;
+	for (int i = 0; i < Lines; ++i)
+	{
+		delete[] MatrixElements[i];
+	}
+	delete[] MatrixElements;
+
+	MatrixElements = new double* [Lines];
+	Columns = AnotherMatrix.Columns;
+	for (int i = 0; i < Lines; ++i)
+	{
+		MatrixElements[i] = new double[Columns];
+	}
+	for (int i = 0; i < Lines; ++i)
+	{
+		for (int j = 0; j < AnotherMatrix.Columns; ++j)
+		{
+			MatrixElements[i][j] = Temp[i][j] * AnotherMatrix.MatrixElements[i][j];
+		}
+	}
+
+	for (int i = 0; i < TempLines; ++i)
+	{
+		delete[] Temp[i];
+	}
+	delete[] Temp;
 	return *this;
 };
 
@@ -404,17 +543,39 @@ const Matrix& Matrix::operator/=(const Matrix& AnotherMatrix)
 		cout << "Failed to divide matrices" << endl;
 		return 0;
 	}
-	for (int i = 0; i < Lines; ++i)
+	if (AnotherMatrix.Lines != AnotherMatrix.Columns)
 	{
-		for (int j = 0; j < Columns; ++j)
+		cout << "Failed to divide matrices" << endl;
+		return 0;
+	}
+	double Determinant = FindDeterminant(AnotherMatrix);
+	if (Determinant == 0)
+	{
+		cout << "Determinant was equal to 0. Failed to divide matrices" << endl;
+		return 0;
+	}
+	Matrix M(GetMatrix(), Lines, AnotherMatrix.Columns);
+	Matrix Copy(AnotherMatrix);
+	MatrixTransposition(Copy);
+	for (int i = 0; i < AnotherMatrix.Lines; ++i)
+	{
+		for (int j = 0; j < AnotherMatrix.Columns; ++j)
+		{
+			Copy.MatrixElements[i][j] /= Determinant;
+		}
+	}
+	for (int i = 0; i < M.Lines; ++i)
+	{
+		for (int j = 0; j < M.Columns; ++j)
 		{
 			if (AnotherMatrix.MatrixElements[i][j] == 0)
 			{
 				cout << "The divisor was equal to 0" << endl;
-				MatrixElements[i][j] = 0;
+				M.MatrixElements[i][j] = 0;
 			}
-			else 
+			else
 			{
+				M.MatrixElements[i][j] *= Copy.MatrixElements[i][j];
 			};
 		}
 	}
@@ -534,7 +695,7 @@ const bool operator!=(const Matrix& Left, const Matrix& Right)
 	{
 		for (int j = 0; j < Left.Columns; ++j)
 		{
-			if (Left.MatrixElements[i][j] == Right.MatrixElements[i][j]) Result = true;
+			if (Left.MatrixElements[i][j] != Right.MatrixElements[i][j]) Result = true;
 			else Result = false;
 		}
 	}
