@@ -215,6 +215,16 @@ void Matrix::SetMatrixElem(const double Elem, const int LinesPosition, const int
 	MatrixElements[LinesPosition][ColumnsPosition] = Elem;
 };
 
+void Matrix::SetMatrix(double** Matr) 
+{
+	for (int i = 0; i < Lines; ++i)
+	{
+		delete[] MatrixElements[i];
+	}
+	delete[] MatrixElements;
+	MatrixElements = Matr;
+};
+
 const int Matrix::GetLines() const
 {
 	return Lines;
@@ -248,24 +258,64 @@ const Matrix operator+ (const Matrix& Left, const Matrix& Right)
 		cout << "Failed to add matrices" << endl;
 		return 0;
 	}
-	Matrix M(Left);
-	for (int i = 0; i < Left.Lines; ++i) 
+	int Lines = Left.Lines;
+	int Columns = Left.Columns;
+	double** MatrixElements = new double* [Lines];
+	for (int i = 0; i < Lines; ++i)
 	{
-		for (int j = 0; j < Left.Columns; ++j)
+		MatrixElements[i] = new double[Columns];
+	}
+	for (int i = 0; i < Lines; ++i) 
+	{
+		for (int j = 0; j < Columns; ++j)
 		{
 			if (((Right.MatrixElements[i][j] > 0) && (Left.MatrixElements[i][j] > (DBL_MAX - Right.MatrixElements[i][j]))) ||
 				((Right.MatrixElements[i][j] < 0) && (Left.MatrixElements[i][j] < (DBL_MIN - Right.MatrixElements[i][j]))))
 			{
 				cout << "An overflow occurred while adding matrices" << endl;
-				M.MatrixElements[i][j] = 0;
+				MatrixElements[i][j] = 0;
 			}
 			else
 			{
-				M.MatrixElements[i][j] = Left.MatrixElements[i][j] + Right.MatrixElements[i][j];
+				MatrixElements[i][j] = Left.MatrixElements[i][j] + Right.MatrixElements[i][j];
 			};
 		}
 	}
-	return M;
+	return Matrix((const double**)MatrixElements, Lines, Columns);
+};
+
+const Matrix operator+ (const Matrix& Left, const int Number)
+{
+	int Lines = Left.Lines;
+	int Columns = Left.Columns;
+	double** MatrixElements = new double* [Lines];
+	for (int i = 0; i < Lines; ++i)
+	{
+		MatrixElements[i] = new double[Columns];
+	}
+	for (int i = 0; i < Lines; ++i)
+	{
+		for (int j = 0; j < Columns; ++j)
+		{
+			if (i == j)
+			{
+				if (((Number > 0) && (Left.MatrixElements[i][j] > (DBL_MAX - Number))) ||
+					((Number < 0) && (Left.MatrixElements[i][j] < (DBL_MIN - Number))))
+				{
+					cout << "An overflow occurred while adding matrices" << endl;
+					MatrixElements[i][j] = 0;
+				}
+				else MatrixElements[i][j] = Left.MatrixElements[i][j] + Number;
+			}
+			else MatrixElements[i][j] = Left.MatrixElements[i][j];
+		}
+	}
+	return Matrix((const double**)MatrixElements, Lines, Columns);
+};
+
+const Matrix operator+ (const Matrix& Left, const char* Str) 
+{
+	return Left + atoi(Str);
 };
 
 const Matrix operator- (const Matrix& Left, const Matrix& Right) 
@@ -275,7 +325,13 @@ const Matrix operator- (const Matrix& Left, const Matrix& Right)
 		cout << "Failed to subtract matrices" << endl;
 		return 0;
 	}
-	Matrix M(Left);
+	int Lines = Left.Lines;
+	int Columns = Left.Columns;
+	double** MatrixElements = new double* [Lines];
+	for (int i = 0; i < Lines; ++i)
+	{
+		MatrixElements[i] = new double[Columns];
+	}
 	for (int i = 0; i < Left.Lines; ++i)
 	{
 		for (int j = 0; j < Left.Columns; ++j)
@@ -284,15 +340,49 @@ const Matrix operator- (const Matrix& Left, const Matrix& Right)
 				((Right.MatrixElements[i][j] < 0) && (Left.MatrixElements[i][j] > (DBL_MAX + Right.MatrixElements[i][j]))))
 			{
 				cout << "An overflow occurred while subtracting matrices" << endl;
-				M.MatrixElements[i][j] = 0;
+				MatrixElements[i][j] = 0;
 			}
 			else
 			{
-				M.MatrixElements[i][j] = Left.MatrixElements[i][j] - Right.MatrixElements[i][j];
+				MatrixElements[i][j] = Left.MatrixElements[i][j] - Right.MatrixElements[i][j];
 			};
 		}
 	}
-	return M;
+	return Matrix((const double**)MatrixElements, Lines, Columns);
+};
+
+const Matrix operator- (const Matrix& Left, const int Number)
+{
+	int Lines = Left.Lines;
+	int Columns = Left.Columns;
+	double** MatrixElements = new double* [Lines];
+	for (int i = 0; i < Lines; ++i)
+	{
+		MatrixElements[i] = new double[Columns];
+	}
+	for (int i = 0; i < Lines; ++i)
+	{
+		for (int j = 0; j < Columns; ++j)
+		{
+			if (i == j)
+			{
+				if (((Number > 0) && (Left.MatrixElements[i][j] < (DBL_MIN + Number))) ||
+					((Number < 0) && (Left.MatrixElements[i][j] > (DBL_MAX + Number))))
+				{
+					cout << "An overflow occurred while subtracting matrices" << endl;
+					MatrixElements[i][j] = 0;
+				}
+				else MatrixElements[i][j] = Left.MatrixElements[i][j] - Number;
+			}
+			else MatrixElements[i][j] = Left.MatrixElements[i][j];
+		}
+	}
+	return Matrix((const double**)MatrixElements, Lines, Columns);
+};
+
+const Matrix operator- (const Matrix& Left, const char* Str) 
+{
+	return Left - atoi(Str);
 };
 
 const Matrix operator* (const Matrix& Left, const Matrix& Right) 
@@ -302,47 +392,53 @@ const Matrix operator* (const Matrix& Left, const Matrix& Right)
 		cout << "Failed to multiply matrices" << endl;
 		return 0;
 	}
-	Matrix M(Left.GetMatrix(), Left.Lines, Right.Columns);
-	for (int i = 0; i < Left.Lines; ++i)
+	int Lines = Left.Lines;
+	int Columns = Right.Columns;
+	double** MatrixElements = new double* [Lines];
+	for (int i = 0; i < Lines; ++i)
 	{
-		for (int j = 0; j < Right.Columns; ++j)
+		MatrixElements[i] = new double[Columns];
+		for (int j = 0; j < Columns; ++j)
 		{
-			M.MatrixElements[i][j] = Left.MatrixElements[i][j] * Right.MatrixElements[i][j];
+			MatrixElements[i][j] = 0;
+			for (int k = 0; k < Columns; ++k)
+			{
+				MatrixElements[i][j] += Left.MatrixElements[i][k] * Right.MatrixElements[k][j];
+			}
+			if (MatrixElements[i][j] < 0.000000001) 
+			{
+				MatrixElements[i][j] = 0;
+			}
 		}
 	}
-	return M;
+	return Matrix((const double**)MatrixElements, Lines, Columns);
 };
 
 const Matrix operator* (const Matrix& Left, const int Number)
 {
-	Matrix M(Left);
+	int Lines = Left.Lines;
+	int Columns = Left.Columns;
+	double** MatrixElements = new double* [Lines];
+	for (int i = 0; i < Lines; ++i)
+	{
+		MatrixElements[i] = new double[Columns];
+	}
 	for (int i = 0; i < Left.Lines; ++i)
 	{
 		for (int j = 0; j < Left.Columns; ++j)
 		{
-			M.MatrixElements[i][j] = Left.MatrixElements[i][j] * Number;
+			MatrixElements[i][j] = Left.MatrixElements[i][j] * Number;
 		}
 	}
-	return M;
+	return Matrix((const double**)MatrixElements, Lines, Columns);
 };
-void MatrixTransposition(Matrix& M) // Функція транспонування матриці, необхідна для ділення матриць
-{
-	double Number;
-	for (int i = 0; i < M.GetLines(); ++i)
-	{
-		for (int j = i; j < M.GetColumns(); ++j)
-		{
-			Number = M.GetMatrix()[i][j];
-			M.SetMatrixElem(M.GetMatrix()[j][i], i, j);
-			M.SetMatrixElem(Number, j, i);
-		}
-	}
-	int Temp = M.GetLines();
-	M.SetLines(M.GetColumns());
-	M.SetColumns(Temp);
-}
 
-void GetMatr(const double** mas, double** p, const int i, const int j, const int m) 
+const Matrix operator* (const Matrix& Left, const char* Str) 
+{
+	return Left * atoi(Str);
+};
+
+void GetMatr(const double** Mas, double** P, const int i, const int j, const int m) 
 {
 	int di, dj;
 	di = 0;
@@ -353,7 +449,7 @@ void GetMatr(const double** mas, double** p, const int i, const int j, const int
 		for (int kj = 0; kj < m - 1; ++kj) 
 		{
 			if (kj == j) dj = 1;
-			p[ki][kj] = mas[ki + di][kj + dj];
+			P[ki][kj] = Mas[ki + di][kj + dj];
 		}
 	}
 }
@@ -362,9 +458,9 @@ const double FindDeterminant(const Matrix& M) // функція знаходження визначника 
 {
 	double Determinant = 0;
 	int k, n;
-	double** p;
-	p = new double* [M.GetLines()];
-	for (int i = 0; i < M.GetLines(); ++i) p[i] = new double[M.GetLines()];
+	double** P;
+	P = new double* [M.GetLines()];
+	for (int i = 0; i < M.GetLines(); ++i) P[i] = new double[M.GetLines()];
 	k = 1; //(-1) в степені i
 	n = M.GetLines() - 1;
 	if (M.GetLines() == 1) 
@@ -380,13 +476,97 @@ const double FindDeterminant(const Matrix& M) // функція знаходження визначника 
 	{
 		for (int i = 0; i < M.GetLines(); ++i)
 		{
-			GetMatr(M.GetMatrix(), p, i, 0, M.GetLines());
-			Matrix TempMatrix((const double**)(p), n, n);
+			GetMatr(M.GetMatrix(), P, i, 0, M.GetLines());
+			Matrix TempMatrix((const double**)(P), n, n);
 			Determinant = Determinant + k * M.GetMatrix()[i][0] * FindDeterminant(TempMatrix);
 			k = -k;
 		}
 	}
 	return Determinant;
+}
+
+int GetMinor(const double** A, double** B, int x, int y, int size)
+{
+	int XCount = 0, YCount = 0;
+	for (int i = 0; i < size; ++i)
+	{
+		if (i != x)
+		{
+			YCount = 0;
+			for (int j = 0; j < size; ++j)
+			{
+				if (j != y)
+				{
+					B[XCount][YCount] = A[i][j];
+					YCount++;
+				}
+			}
+			XCount++;
+		}
+	}
+	return 0;
+}
+
+double FindArrayDeterminant(const double** A, const int Size)
+{
+	if (Size == 1)
+	{
+		return A[0][0];
+	}
+	else
+	{
+		int Det = 0;
+		double** Minor = new double* [Size - 1];
+		for (int i = 0; i < Size; ++i)
+		{
+			Minor[i] = new double[Size - 1];
+		}
+		for (int i = 0; i < Size; ++i)
+		{
+			GetMinor(A, Minor, 0, i, Size);
+			Det += pow(-1, i) * A[0][i] * FindArrayDeterminant((const double**)Minor, Size - 1);
+		}
+		return Det;
+	}
+}
+
+void FindAlgDop(const double** A, const int Size, double** B)
+{
+	int Det = FindArrayDeterminant(A, Size);
+	if (Det > 0) Det = -1;
+	else Det = 1;
+	double** Minor = new double* [Size - 1];
+	for (int i = 0; i < Size - 1; ++i)
+	{
+		Minor[i] = new double[Size - 1];
+	}
+	for (int j = 0; j < Size; ++j)
+	{
+		for (int i = 0; i < Size; ++i)
+		{
+			GetMinor(A, Minor, j, i, Size);
+			if ((i + j) % 2 == 0)
+				B[j][i] = -Det * FindArrayDeterminant((const double**)Minor, Size - 1);
+			else
+				B[j][i] = Det * FindArrayDeterminant((const double**)Minor, Size - 1);
+		}
+	}
+	for (int i = 0; i < Size - 1; ++i)
+	{
+		delete[] Minor[i];
+	}
+	delete[] Minor;
+}
+
+void Matrix::MatrixTransponation()
+{
+	for (int i = 0; i < Lines; ++i)
+	{
+		for (int j = i; j < Columns; ++j)
+		{
+			swap(MatrixElements[i][j], MatrixElements[j][i]);
+		}
+	}
 }
 
 const Matrix operator/ (const Matrix& Left, const Matrix& Right) 
@@ -407,32 +587,71 @@ const Matrix operator/ (const Matrix& Left, const Matrix& Right)
 		cout << "Determinant was equal to 0. Failed to divide matrices" << endl;
 		return 0;
 	}
-	Matrix M(Left.GetMatrix(), Left.Lines, Right.Columns);
-	Matrix Copy(Right);
-	MatrixTransposition(Copy);
 	for (int i = 0; i < Right.Lines; ++i)
 	{
 		for (int j = 0; j < Right.Columns; ++j)
 		{
+			if (Right.MatrixElements[i][j] == 0)
+			{
+				cout << "Divisor was equal to 0. Failed to divide matrices" << endl;
+				return 0;
+			}
+		}
+	}
+	double** Result = new double* [Right.Lines];
+	for (int i = 0; i < Right.Lines; ++i)
+	{
+		Result[i] = new double[Right.Columns];
+	}
+	FindAlgDop((const double**)Right.MatrixElements, Right.Lines, Result);
+	Matrix Copy((const double**)Result, Right.Lines, Right.Columns);
+	Copy.MatrixTransponation();
+	for (int i = 0; i < Copy.Lines; ++i)
+	{
+		for (int j = 0; j < Copy.Columns; ++j)
+		{
 			Copy.MatrixElements[i][j] /= Determinant;
 		}
 	}
-	for (int i = 0; i < M.Lines; ++i)
+	for (int i = 0; i < Right.Lines; ++i)
 	{
-		for (int j = 0; j < M.Columns; ++j)
+		delete[] Result[i];
+	}
+	delete[] Result;
+	return Left * Copy;
+};
+
+const Matrix operator/ (const Matrix& Left, const int Number)
+{
+	if (Number == 0)
+	{
+		cout << "The divisor was equal to 0" << endl;
+		return 0;
+	}
+	int Lines = Left.Lines;
+	int Columns = Left.Columns;
+	double** MatrixElements = new double* [Lines];
+	for (int i = 0; i < Lines; ++i)
+	{
+		MatrixElements[i] = new double[Columns];
+		for (int j = 0; j < Columns; ++j)
 		{
-			if (Right.MatrixElements[i][j] == 0)
-			{
-				cout << "The divisor was equal to 0" << endl;
-				M.MatrixElements[i][j] = 0;
-			}
-			else 
-			{
-				M.MatrixElements[i][j] *= Copy.MatrixElements[i][j];
-			};
+			MatrixElements[i][j] = Left.MatrixElements[i][j];
 		}
 	}
-	return M;
+	for (int i = 0; i < Lines; ++i)
+	{
+		for (int j = 0; j < Columns; ++j)
+		{
+			MatrixElements[i][j] /= Number;
+		}
+	}
+	return Matrix((const double**)MatrixElements, Lines, Columns);
+};
+
+const Matrix operator/ (const Matrix& Left, const char* Str) 
+{
+	return Left + atoi(Str);
 };
 
 const Matrix& Matrix::operator+=(const Matrix& AnotherMatrix)
@@ -452,10 +671,29 @@ const Matrix& Matrix::operator+=(const Matrix& AnotherMatrix)
 				cout << "An overflow occurred while adding matrices" << endl;
 				MatrixElements[i][j] = 0;
 			}
-			else
+			else MatrixElements[i][j] += AnotherMatrix.MatrixElements[i][j];
+		}
+	}
+	return *this;
+};
+
+const Matrix& Matrix::operator+=(const int Number)
+{
+	for (int i = 0; i < Lines; ++i)
+	{
+		for (int j = 0; j < Columns; ++j)
+		{
+			if (i == j)
 			{
-				MatrixElements[i][j] += AnotherMatrix.MatrixElements[i][j];
-			};
+				if (((Number > 0) && (MatrixElements[i][j] > (DBL_MAX - Number))) ||
+					((Number < 0) && (MatrixElements[i][j] < (DBL_MIN - Number))))
+				{
+					cout << "An overflow occurred while adding matrices" << endl;
+					MatrixElements[i][j] = 0;
+					continue;
+				}
+				else MatrixElements[i][j] += Number;
+			}
 		}
 	}
 	return *this;
@@ -478,10 +716,27 @@ const Matrix& Matrix::operator-=(const Matrix& AnotherMatrix)
 				cout << "An overflow occurred while subtracting matrices" << endl;
 				MatrixElements[i][j] = 0;
 			}
-			else
-			{
-				MatrixElements[i][j] -= AnotherMatrix.MatrixElements[i][j];
-			};
+			else MatrixElements[i][j] -= AnotherMatrix.MatrixElements[i][j];
+		}
+	}
+	return *this;
+};
+
+const Matrix& Matrix::operator-=(const int Number)
+{
+	for (int i = 0; i < Lines; ++i)
+	{
+		for (int j = 0; j < Columns; ++j)
+		{
+			if (i == j) {
+				if (((Number > 0) && (MatrixElements[i][j] < (DBL_MIN + Number))) ||
+					((Number < 0) && (MatrixElements[i][j] > (DBL_MAX + Number))))
+				{
+					cout << "An overflow occurred while subtracting matrices" << endl;
+					MatrixElements[i][j] = 0;
+				}
+				else MatrixElements[i][j] -= Number;
+			}
 		}
 	}
 	return *this;
@@ -507,7 +762,6 @@ const Matrix& Matrix::operator*=(const Matrix& AnotherMatrix)
 			Temp[i][j] = MatrixElements[i][j];
 		}
 	}
-	int TempLines = Lines;
 	for (int i = 0; i < Lines; ++i)
 	{
 		delete[] MatrixElements[i];
@@ -524,11 +778,15 @@ const Matrix& Matrix::operator*=(const Matrix& AnotherMatrix)
 	{
 		for (int j = 0; j < AnotherMatrix.Columns; ++j)
 		{
-			MatrixElements[i][j] = Temp[i][j] * AnotherMatrix.MatrixElements[i][j];
+			MatrixElements[i][j] = 0;
+			for (int k = 0; k < AnotherMatrix.Columns; ++k)
+			{
+				MatrixElements[i][j] += Temp[i][k] * AnotherMatrix.MatrixElements[k][j];
+			}
 		}
 	}
 
-	for (int i = 0; i < TempLines; ++i)
+	for (int i = 0; i < Lines; ++i)
 	{
 		delete[] Temp[i];
 	}
@@ -536,7 +794,19 @@ const Matrix& Matrix::operator*=(const Matrix& AnotherMatrix)
 	return *this;
 };
 
-const Matrix& Matrix::operator/=(const Matrix& AnotherMatrix) 
+const Matrix& Matrix::operator*=(const int Number)
+{
+	for (int i = 0; i < Lines; ++i)
+	{
+		for (int j = 0; j < Columns; ++j)
+		{
+			MatrixElements[i][j] *= Number;
+		}
+	}
+	return *this;
+};
+
+const Matrix& Matrix::operator/=(const Matrix& AnotherMatrix)
 {
 	if (Columns != AnotherMatrix.Lines)
 	{
@@ -554,29 +824,60 @@ const Matrix& Matrix::operator/=(const Matrix& AnotherMatrix)
 		cout << "Determinant was equal to 0. Failed to divide matrices" << endl;
 		return 0;
 	}
-	Matrix M(GetMatrix(), Lines, AnotherMatrix.Columns);
-	Matrix Copy(AnotherMatrix);
-	MatrixTransposition(Copy);
 	for (int i = 0; i < AnotherMatrix.Lines; ++i)
 	{
 		for (int j = 0; j < AnotherMatrix.Columns; ++j)
 		{
+			if (AnotherMatrix.MatrixElements[i][j] == 0)
+			{
+				cout << "Divisor was equal to 0. Failed to divide matrices" << endl;
+				return 0;
+			}
+		}
+	}
+	double** Result = new double* [AnotherMatrix.Lines];
+	for (int i = 0; i < AnotherMatrix.Lines; ++i)
+	{
+		Result[i] = new double[AnotherMatrix.Columns];
+	}
+	FindAlgDop((const double**)AnotherMatrix.MatrixElements, AnotherMatrix.Lines, Result);
+	Matrix Copy((const double**)Result, AnotherMatrix.Lines, AnotherMatrix.Columns);
+	Copy.MatrixTransponation();
+	for (int i = 0; i < Copy.Lines; ++i)
+	{
+		for (int j = 0; j < Copy.Columns; ++j)
+		{
 			Copy.MatrixElements[i][j] /= Determinant;
 		}
 	}
-	for (int i = 0; i < M.Lines; ++i)
+	Matrix Res = *this * Copy;
+	for (int i = 0; i < Lines; ++i)
 	{
-		for (int j = 0; j < M.Columns; ++j)
+		delete[] MatrixElements[i];
+	}
+	for (int i = 0; i < Lines; ++i) 
+	{
+		MatrixElements[i] = new double[Columns];
+		for (int j = 0; j < Columns; ++j)
 		{
-			if (AnotherMatrix.MatrixElements[i][j] == 0)
-			{
-				cout << "The divisor was equal to 0" << endl;
-				M.MatrixElements[i][j] = 0;
-			}
-			else
-			{
-				M.MatrixElements[i][j] *= Copy.MatrixElements[i][j];
-			};
+			MatrixElements[i][j] = Res.MatrixElements[i][j];
+		}
+	}
+	for (int i = 0; i < AnotherMatrix.Lines; ++i)
+	{
+		delete[] Result[i];
+	}
+	delete[] Result;
+	return *this;
+};
+
+const Matrix& Matrix::operator/=(const int Number)
+{
+	for (int i = 0; i < Lines; ++i)
+	{
+		for (int j = 0; j < Columns; ++j)
+		{
+			MatrixElements[i][j] /= Number;
 		}
 	}
 	return *this;
