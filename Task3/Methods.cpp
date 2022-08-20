@@ -62,8 +62,10 @@ Matrix::Matrix(Matrix&& AnotherMatrix)
 	for (int i = 0; i < AnotherMatrix.Lines; ++i)
 	{
 		AnotherMatrix.MatrixElements[i] = nullptr;
+		delete[] AnotherMatrix.MatrixElements[i];
 	}
 	AnotherMatrix.MatrixElements = nullptr;
+	delete[] AnotherMatrix.MatrixElements;
 };
 
 Matrix::Matrix(const int Number)
@@ -169,8 +171,10 @@ Matrix& Matrix::operator=(Matrix&& AnotherMatrix)
 	for (int i = 0; i < AnotherMatrix.Lines; ++i)
 	{
 		AnotherMatrix.MatrixElements[i] = nullptr;
+		delete[] AnotherMatrix.MatrixElements[i];
 	}
 	AnotherMatrix.MatrixElements = nullptr;
+	delete[] AnotherMatrix.MatrixElements;
 
 	return *this;
 };
